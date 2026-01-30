@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Logs and debug
+*.log
+.cursor/debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE (optional: uncomment if you don't want to share)
+# .vscode/
+# .idea/
