@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XED Chat Widget - Demo</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 40px;
+            background: #f0f2f5;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1e3a8a;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        button {
+            background: #1e3a8a;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>Integration Demo</h1>
+        <p>This page demonstrates how to use the built-in loader script.</p>
+        <div id="loader-container">
+            <!-- The loader will be injected here for demo purposes -->
+        </div>
+        <div class="form-group">
+            <label>Cohort Key</label>
+            <input type="text" id="cohortKeyInput" value="oxford-selp-cohort-4" />
+            <button onclick="loadWidget()">Load Widget</button>
+        </div>
+    </div>
+
+    <script>
+        function loadWidget() {
+            const key = document.getElementById('cohortKeyInput').value;
+
+            // Remove existing widget if any
+            if (window.XED_CHAT_WIDGET) {
+                window.XED_CHAT_WIDGET.remove();
+            }
+
+            // Inject the script dynamically for the demo (use /loader.js - Vite plugin serves it in dev)
+            const script = document.createElement('script');
+            script.src = '/loader.js';
+            script.setAttribute('data-cohort-key', key);
+            script.setAttribute('data-api-base', window.location.origin);
+            document.body.appendChild(script);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,16 @@
+services:
+  app:
+    container_name: pc-frontend
+    build: .
+    restart: always
+    env_file:
+      - ./.env
+    ports:
+      - "40002:5173"
+    mem_limit: 512m
+    networks:
+      - pc-frontend-network
+
+
+networks:
+  pc-frontend-network:
