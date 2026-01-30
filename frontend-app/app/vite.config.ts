@@ -22,38 +22,37 @@ function loaderDevPlugin(): Plugin {
             
             // Inject .env values as constants before transpilation
             const envDefaults = `
-  // Injected from .env file at build time
+  // Injected from .env: VITE_API_BASE, VITE_VOICE_HTTP, VITE_VOICE_WS (.env.local / .env.docker)
   const ENV_DEFAULTS = {
-    apiBase: ${JSON.stringify(env.VITE_API_BASE_URL || '')},
-    voiceHttpBase: ${JSON.stringify(env.VITE_VOICE_HTTP_BASE_URL || '')},
-    voiceWsBase: ${JSON.stringify(env.VITE_VOICE_WS_BASE_URL || '')},
+    apiBase: ${JSON.stringify(env.VITE_API_BASE || '')},
+    voiceHttpBase: ${JSON.stringify(env.VITE_VOICE_HTTP || '')},
+    voiceWsBase: ${JSON.stringify(env.VITE_VOICE_WS || '')},
   };
 `
             
-            // Remove any import.meta.env usage first (before injecting ENV_DEFAULTS)
+            // Replace env references with ENV_DEFAULTS
             loaderContent = loaderContent.replace(
-              /\(import\.meta as any\)\.env\.VITE_API_BASE_URL/g,
+              /\(import\.meta as any\)\.env\.VITE_API_BASE/g,
               'ENV_DEFAULTS.apiBase'
             )
             loaderContent = loaderContent.replace(
-              /\(import\.meta as any\)\.env\.VITE_VOICE_HTTP_BASE_URL/g,
+              /\(import\.meta as any\)\.env\.VITE_VOICE_HTTP/g,
               'ENV_DEFAULTS.voiceHttpBase'
             )
             loaderContent = loaderContent.replace(
-              /\(import\.meta as any\)\.env\.VITE_VOICE_WS_BASE_URL/g,
+              /\(import\.meta as any\)\.env\.VITE_VOICE_WS/g,
               'ENV_DEFAULTS.voiceWsBase'
             )
-            // Also handle without 'as any'
             loaderContent = loaderContent.replace(
-              /import\.meta\.env\.VITE_API_BASE_URL/g,
+              /import\.meta\.env\.VITE_API_BASE/g,
               'ENV_DEFAULTS.apiBase'
             )
             loaderContent = loaderContent.replace(
-              /import\.meta\.env\.VITE_VOICE_HTTP_BASE_URL/g,
+              /import\.meta\.env\.VITE_VOICE_HTTP/g,
               'ENV_DEFAULTS.voiceHttpBase'
             )
             loaderContent = loaderContent.replace(
-              /import\.meta\.env\.VITE_VOICE_WS_BASE_URL/g,
+              /import\.meta\.env\.VITE_VOICE_WS/g,
               'ENV_DEFAULTS.voiceWsBase'
             )
             
@@ -122,11 +121,11 @@ function injectEnvBuildPlugin(): Plugin {
         
         // Inject .env values as constants
         const envDefaults = `
-  // Injected from .env file at build time
+  // Injected from .env: VITE_API_BASE, VITE_VOICE_HTTP, VITE_VOICE_WS
   const ENV_DEFAULTS = {
-    apiBase: ${JSON.stringify(env.VITE_API_BASE_URL || '')},
-    voiceHttpBase: ${JSON.stringify(env.VITE_VOICE_HTTP_BASE_URL || '')},
-    voiceWsBase: ${JSON.stringify(env.VITE_VOICE_WS_BASE_URL || '')},
+    apiBase: ${JSON.stringify(env.VITE_API_BASE || '')},
+    voiceHttpBase: ${JSON.stringify(env.VITE_VOICE_HTTP || '')},
+    voiceWsBase: ${JSON.stringify(env.VITE_VOICE_WS || '')},
   };
 `
         
@@ -156,8 +155,8 @@ function injectEnvBuildPlugin(): Plugin {
   }
 }
 
-// Dev proxy target: backend on 3000 (local) or 40000 (Docker on host)
-const apiBase = loadEnv('development', __dirname, '').VITE_API_BASE_URL || 'http://localhost:3000'
+// Dev proxy: /api → RAG backend. Set VITE_API_BASE in .env.local (local) or use default.
+const apiBase = loadEnv('development', __dirname, '').VITE_API_BASE || 'http://localhost:8080'
 
 export default defineConfig({
   plugins: [react(), loaderDevPlugin(), injectEnvBuildPlugin()],
@@ -169,7 +168,7 @@ export default defineConfig({
       protocol: 'ws',
     },
     proxy: {
-      // Proxy API requests to the backend (uses VITE_API_BASE_URL from .env / .env_file)
+      // Proxy /api to RAG backend (VITE_API_BASE from .env.local)
       '/api': {
         target: apiBase,
         changeOrigin: true,
@@ -185,7 +184,6 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'index.html'),
         iframe: path.resolve(__dirname, 'iframe.html'),
-        demo: path.resolve(__dirname, 'demo.html'),
         loader: path.resolve(__dirname, 'src/loader.ts'),
       },
       output: {

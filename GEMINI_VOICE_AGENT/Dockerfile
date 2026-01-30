@@ -7,7 +7,8 @@ COPY app/package.json .
 COPY app/package-lock.json .
 RUN npm install
 
-COPY app/ .
+COPY app .
+
 RUN npm run build
     
 
@@ -21,5 +22,6 @@ COPY --from=builder /app/package-lock.json .
 RUN npm install
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/public ./public
 
 CMD ["npm", "start"]

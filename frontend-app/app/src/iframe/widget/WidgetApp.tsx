@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import PhoneInput, { isPossiblePhoneNumber, isValidPhoneNumber } from 'react-phone-number-input'
 import 'react-phone-number-input/style.css'
 import { loadWidgetConfig } from './config'
 import type { ChatMessage, WidgetConfig } from './types'
 import { logError, logInfo } from '../../lib/logger'
 import { getSessionUrl, getChatUrl, getChatResponseField, getApiHeaders } from './api'
+import { useVoiceAgent } from './useVoiceAgent'
 
 type Mode = 'text' | 'voice'
 
@@ -81,8 +82,20 @@ export function WidgetApp() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Voice mode: UI only; logic to be implemented later
-  const voicePlaceholderMessage = 'Voice mode – coming soon. You can implement voice logic here.'
+  // Voice: RAG answers from agent tool calls are appended here so UI stays in sync with voice.
+  const onVoiceAssistantMessage = useCallback((text: string) => {
+    if (!text.trim()) return
+    setMessages((prev) => [...prev, { id: uid(), role: 'assistant', text }])
+  }, [])
+
+  const voiceAgent = useVoiceAgent({
+    voiceHttpBase: config?.voiceHttpBase ?? '',
+    voiceWsBase: config?.voiceWsBase ?? '',
+    apiBase: config?.apiBase ?? '',
+    cohortKey: config?.cohortKey ?? '',
+    ragSessionId: sessionId,
+    onAssistantMessage: onVoiceAssistantMessage,
+  })
 
   // Lead form
   const [fullName, setFullName] = useState('')
@@ -118,6 +131,11 @@ export function WidgetApp() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, expanded, mode])
+
+  // When leaving voice mode, disconnect WebSocket and release mic.
+  useEffect(() => {
+    if (mode !== 'voice') voiceAgent.disconnect()
+  }, [mode, voiceAgent.disconnect])
 
   const canUseVoice = !!sessionId
 
@@ -408,40 +426,70 @@ export function WidgetApp() {
           </div>
         )}
 
-        {sessionId && mode === 'voice' && (
+        {sessionId && mode === 'voice' && config && (
           <div className="chat-interface-container active" id="voiceInterfaceContainer">
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: '#f9fafb' }}>
-              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              {/* Voice connection: WebSocket to Gemini Voice Agent (VITE_VOICE_WS). Tool calls run on agent; we show transcript + RAG answers. */}
+              <div style={{ padding: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, borderBottom: '1px solid #e5e7eb' }}>
                 <img
                   alt="Voice assistant"
                   src={config.profileImage}
-                  style={{ width: 96, height: 96, borderRadius: '50%', border: '2px solid #1e3a8a', background: '#fff' }}
+                  style={{ width: 64, height: 64, borderRadius: '50%', border: '2px solid #1e3a8a', background: '#fff' }}
                 />
-                <div style={{ fontSize: 12, color: '#6b7280', textAlign: 'center' }}>{voicePlaceholderMessage}</div>
-                <button
-                  type="button"
-                  className="submit-btn"
-                  style={{ maxWidth: 220, marginTop: 4 }}
-                  onClick={() => setMode('text')}
-                >
-                  Back to Text
-                </button>
-              </div>
-              <div style={{ flex: 1, minHeight: 0, padding: 16, overflow: 'auto' }}>
-                <div
-                  style={{
-                    background: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: 12,
-                    padding: 14,
-                    lineHeight: 1.6,
-                    fontSize: 14,
-                    color: '#111827',
-                    minHeight: 120,
-                  }}
-                >
-                  Voice UI is kept here. Add your voice logic (e.g. WebSocket, audio) when ready.
+                <div style={{ fontSize: 12, color: '#6b7280' }}>
+                  {voiceAgent.status === 'idle' && 'Click Connect to start voice (microphone required).'}
+                  {voiceAgent.status === 'connecting' && 'Connecting…'}
+                  {voiceAgent.status === 'connected' && 'Listening — speak to get RAG answers.'}
+                  {voiceAgent.status === 'disconnected' && 'Disconnected.'}
+                  {voiceAgent.status === 'error' && (voiceAgent.error || 'Connection error.')}
                 </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {(voiceAgent.status === 'idle' || voiceAgent.status === 'disconnected' || voiceAgent.status === 'error') && (
+                    <button type="button" className="submit-btn" style={{ minWidth: 100 }} onClick={() => voiceAgent.connect()}>
+                      Connect
+                    </button>
+                  )}
+                  {(voiceAgent.status === 'connecting' || voiceAgent.status === 'connected') && (
+                    <button type="button" className="submit-btn" style={{ minWidth: 100, background: '#dc2626' }} onClick={() => voiceAgent.disconnect()}>
+                      Disconnect
+                    </button>
+                  )}
+                  <button type="button" className="submit-btn" style={{ maxWidth: 140 }} onClick={() => setMode('text')}>
+                    Back to Text
+                  </button>
+                </div>
+                {voiceAgent.error && (
+                  <div role="alert" style={{ fontSize: 12, color: '#dc2626', textAlign: 'center', maxWidth: 320 }}>
+                    {voiceAgent.error}
+                  </div>
+                )}
+              </div>
+              {/* Live transcript + RAG answers (from agent tool calls) in sync with voice */}
+              <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {voiceAgent.transcriptions.length > 0 && (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, fontSize: 13 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 6, color: '#374151' }}>Live transcript</div>
+                    {voiceAgent.transcriptions.map((t, i) => (
+                      <div key={i} style={{ color: t.isUser ? '#1e40af' : '#111827', marginBottom: 4 }}>
+                        {t.isUser ? 'You' : config.agentName}: {t.text}
+                        {t.isFinal && ' ✓'}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {messages.filter((m) => m.role === 'assistant').length > 0 && (
+                  <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, fontSize: 13 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 6, color: '#374151' }}>RAG answers</div>
+                    {messages.filter((m) => m.role === 'assistant').map((m) => (
+                      <div key={m.id} className="message-content" style={{ marginBottom: 8 }} dangerouslySetInnerHTML={{ __html: formatMarkdown(m.text) }} />
+                    ))}
+                  </div>
+                )}
+                {voiceAgent.transcriptions.length === 0 && messages.filter((m) => m.role === 'assistant').length === 0 && (
+                  <div style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: 16 }}>
+                    Connect and speak; answers from the RAG backend will appear here.
+                  </div>
+                )}
               </div>
             </div>
           </div>

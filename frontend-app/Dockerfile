@@ -1,18 +1,26 @@
-# Step 1: Build the app
+# Step 1: Build the app (VITE_* from build args or .env.docker)
 FROM node:24-alpine AS builder
+
+ARG VITE_API_BASE
+ARG VITE_VOICE_HTTP
+ARG VITE_VOICE_WS
+ENV VITE_API_BASE=$VITE_API_BASE
+ENV VITE_VOICE_HTTP=$VITE_VOICE_HTTP
+ENV VITE_VOICE_WS=$VITE_VOICE_WS
 
 WORKDIR /app
 
-COPY app/package*.json ./
+COPY app/package*.json .
 RUN npm install --force
 
-COPY app .
+COPY app/ .
+# Docker build: use .env.docker so host-port URLs and paths are baked in (build args override URLs).
+RUN cp .env.docker .env 2>/dev/null || true
 RUN npm run build
 
 # Step 2: Production image
 FROM node:22-alpine
 
-ENV NODE_ENV=production
 
 WORKDIR /app
 

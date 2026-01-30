@@ -11,6 +11,7 @@ import chatRouter from "./modules/program_counselor/chat/chatRoutes"
 const app = express()
 
 // CORS: allow frontend origin so browser allows fetch from 5173 to 8080. Configure in .env (CORS_ORIGIN).
+// Set in .env.local (local) or .env.docker (Docker). No hardcoded URLs.
 const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173"
 app.use(
   cors({
@@ -37,8 +38,8 @@ if (!PORT || Number.isNaN(PORT)) {
   throw new Error("Invalid PORT in .env file")
 }
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`)
   const tracing = isTracingEnabled()
   const project = getLangSmithProject()
   if (tracing) {

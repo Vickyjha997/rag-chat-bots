@@ -1,16 +1,17 @@
+# Standalone run from frontend-app/. For full stack with shared network use root: docker compose -f ../docker-compose.yml up --build
 services:
   app:
-    container_name: pc-frontend
+    container_name: program-counsellor-frontend
     build: .
     restart: always
     env_file:
-      - ./.env
+      - ./app/.env.docker
     ports:
-      - "40002:5173"
+      - "40090:5173"
     mem_limit: 512m
     networks:
-      - pc-frontend-network
+      - program-counsellor-frontend-network
 
 
 networks:
-  pc-frontend-network:
+  program-counsellor-frontend-network:

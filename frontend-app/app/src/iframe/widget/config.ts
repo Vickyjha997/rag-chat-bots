@@ -6,15 +6,16 @@ function normalizeUrl(url: string) {
 
 /**
  * Load widget config from .env and URL params.
- * All API/voice URLs come from .env (VITE_*); URL params can override for embedding.
+ * Env: VITE_API_BASE (RAG backend), VITE_VOICE_HTTP, VITE_VOICE_WS (Gemini Voice Agent).
+ * Local: .env.local; Docker: .env.docker (or build args). URL params override for embedding.
  */
 export async function loadWidgetConfig(): Promise<WidgetConfig> {
   const urlParams = new URLSearchParams(window.location.search)
 
   const env = (import.meta as any).env
-  const envApiBase = (env?.VITE_API_BASE_URL as string) ?? ''
-  const envVoiceHttp = (env?.VITE_VOICE_HTTP_BASE_URL as string) ?? ''
-  const envVoiceWs = (env?.VITE_VOICE_WS_BASE_URL as string) ?? ''
+  const envApiBase = (env?.VITE_API_BASE as string) ?? ''
+  const envVoiceHttp = (env?.VITE_VOICE_HTTP as string) ?? ''
+  const envVoiceWs = (env?.VITE_VOICE_WS as string) ?? ''
 
   const cohortKey = urlParams.get('cohortKey') || ''
   if (!cohortKey) {

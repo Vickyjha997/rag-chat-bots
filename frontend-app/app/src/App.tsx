@@ -6,15 +6,15 @@ export default function App() {
   const [iframeUrl, setIframeUrl] = useState('')
 
   useEffect(() => {
-    // Config from .env only (no /api/config). Set VITE_* in frontend-app/app/.env
-    const apiBase = ((import.meta as any).env?.VITE_API_BASE_URL as string) || ''
-    const voiceHttp = ((import.meta as any).env?.VITE_VOICE_HTTP_BASE_URL as string) || ''
-    const voiceWs = ((import.meta as any).env?.VITE_VOICE_WS_BASE_URL as string) || ''
+    // Env: VITE_API_BASE (RAG), VITE_VOICE_HTTP, VITE_VOICE_WS (voice agent). .env.local / .env.docker.
+    const apiBase = ((import.meta as any).env?.VITE_API_BASE as string) || ''
+    const voiceHttp = ((import.meta as any).env?.VITE_VOICE_HTTP as string) || ''
+    const voiceWs = ((import.meta as any).env?.VITE_VOICE_WS as string) || ''
     const origin = window.location.origin.replace(':5173', ':3000')
     setConfig({
       apiBase: apiBase.replace(/\/+$/, '') || origin,
       voiceHttpBase: voiceHttp.replace(/\/+$/, '') || apiBase || origin,
-      voiceWsBase: voiceWs || 'ws://localhost:3001',
+      voiceWsBase: voiceWs || '',
     })
   }, [])
 

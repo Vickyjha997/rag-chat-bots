@@ -1,0 +1,63 @@
+# Root orchestration: one shared network so all containers can resolve each other by name.
+#
+# Why a shared network?
+#   Containers on different networks cannot reach each other by container name.
+#   With one network (rag-network), gemini-voice-agent can call the RAG backend at
+#   http://program-counsellor-backend:8080; no host ports needed for container-to-container.
+#
+# Internal ports vs host ports:
+#   - Internal: containers talk to each other by name + internal port (e.g. program-counsellor-backend:8080).
+#   - Host ports: only for the browser. You open http://localhost:40090 (frontend); frontend build
+#     bakes host URLs (40080, 40001, 40002) so the browser can call backend and voice agent.
+#
+# Run from repo root:  docker compose up --build
+
+services:
+  program-counsellor-backend:
+    build: ./backend-app
+    container_name: program-counsellor-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend-app/app/.env
+      - ./backend-app/.env.docker
+    ports:
+      - "${BACKEND_HOST_PORT:-40080}:8080"
+    mem_limit: 512m
+    networks:
+      - rag-network
+
+  program-counsellor-frontend:
+    build:
+      context: ./frontend-app
+      dockerfile: Dockerfile
+      args:
+        # Browser runs on host; bake host URLs so frontend can reach backend and voice.
+        VITE_API_BASE: http://localhost:${BACKEND_HOST_PORT:-40080}
+        VITE_VOICE_HTTP: http://localhost:${VOICE_HTTP_HOST_PORT:-40001}
+        VITE_VOICE_WS: ws://localhost:${VOICE_WS_HOST_PORT:-40002}
+    container_name: program-counsellor-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_HOST_PORT:-40090}:5173"
+    mem_limit: 512m
+    networks:
+      - rag-network
+
+  gemini-voice-agent:
+    build: ./GEMINI_VOICE_AGENT
+    container_name: gemini-voice-agent
+    restart: unless-stopped
+    env_file:
+      - ./GEMINI_VOICE_AGENT/app/.env
+      - ./GEMINI_VOICE_AGENT/.env.docker
+    ports:
+      - "${VOICE_HTTP_HOST_PORT:-40001}:3001"
+      - "${VOICE_WS_HOST_PORT:-40002}:3002"
+    mem_limit: 512m
+    networks:
+      - rag-network
+
+networks:
+  rag-network:
+    name: rag-network
+    driver: bridge

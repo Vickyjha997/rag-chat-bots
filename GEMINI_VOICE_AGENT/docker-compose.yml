@@ -1,0 +1,20 @@
+# Standalone run from GEMINI_VOICE_AGENT/. Not on shared network → use host.docker.internal to reach backend on host.
+# For full stack with internal networking use root: docker compose -f ../docker-compose.yml up --build
+services:
+  app:
+    container_name: gemini-voice-agent
+    build: .
+    restart: always
+    env_file:
+      - ./app/.env
+      - ./.env.docker.standalone
+    ports:
+      - "40001:3001"
+      - "40002:3002"
+    mem_limit: 512m
+    networks:
+      - gemini-voice-agent-network
+
+
+networks:
+  gemini-voice-agent-network:

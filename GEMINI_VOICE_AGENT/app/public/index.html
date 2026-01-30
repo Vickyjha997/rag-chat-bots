@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Live Backend Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #60a5fa 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 12px 16px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #22c55e;
+        }
+
+        .status-indicator.connecting {
+            background: #f59e0b;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.disconnect {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .volume-meter {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .volume-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(148, 163, 184, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .volume-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #22c55e 100%);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .volume-label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .transcription-box {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            margin-bottom: 24px;
+        }
+
+        .transcription-item {
+            margin-bottom: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .transcription-item.user {
+            background: rgba(59, 130, 246, 0.2);
+            border-left: 3px solid #3b82f6;
+        }
+
+        .transcription-item.assistant {
+            background: rgba(34, 197, 94, 0.2);
+            border-left: 3px solid #22c55e;
+        }
+
+        .transcription-item.system {
+            background: rgba(148, 163, 184, 0.1);
+            border-left: 3px solid #94a3b8;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .transcription-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            opacity: 0.7;
+        }
+
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: #93c5fd;
+        }
+
+        .error-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: #fca5a5;
+            display: none;
+        }
+
+        .error-box.show {
+            display: block;
+        }
+
+        .config {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .config label {
+            display: block;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .config input {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 14px;
+        }
+
+        .config input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .config-section {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .config-source {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(148, 163, 184, 0.2);
+        }
+
+        .config-source.auto {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .config-source.manual {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .config-source.default {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Gemini Live Backend Test</h1>
+        <p class="subtitle">Test your backend WebSocket server with real-time audio</p>
+
+        <div class="config-section">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <label style="margin: 0; font-weight: 600;">Backend Configuration</label>
+                <span id="configStatus" class="config-source" style="font-size: 11px; padding: 4px 8px; border-radius: 4px; background: rgba(148, 163, 184, 0.2);">Loading...</span>
+            </div>
+            <div class="config">
+                <label>Backend URL (HTTP)</label>
+                <input type="text" id="backendUrl" placeholder="http://localhost:3001">
+            </div>
+            <div class="config" style="margin-top: 12px;">
+                <label>WebSocket URL</label>
+                <input type="text" id="wsUrl" placeholder="ws://localhost:3002">
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: #94a3b8;">
+                💡 URLs are auto-detected. Edit manually if needed.
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-indicator" id="statusIndicator"></div>
+            <span class="status-text" id="statusText">Disconnected</span>
+        </div>
+
+        <div class="error-box" id="errorBox"></div>
+
+        <div class="info-box" id="infoBox">
+            Click "Connect" to start. Make sure your microphone is enabled.
+        </div>
+
+        <div class="controls">
+            <button id="connectBtn">Connect</button>
+            <button id="disconnectBtn" class="disconnect" disabled>Disconnect</button>
+        </div>
+
+        <div>
+            <div class="volume-label">Input Volume</div>
+            <div class="volume-meter">
+                <div class="volume-bar">
+                    <div class="volume-fill" id="inputVolume"></div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="volume-label">Output Volume</div>
+            <div class="volume-meter">
+                <div class="volume-bar">
+                    <div class="volume-fill" id="outputVolume"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="transcription-box" id="transcriptionBox">
+            <div class="transcription-item system">
+                <div class="transcription-label">System</div>
+                <div>Ready to connect. Click "Connect" to start.</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+

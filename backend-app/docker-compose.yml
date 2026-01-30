@@ -1,0 +1,18 @@
+# Standalone run from backend-app/. For shared network (voice agent → backend by name) use root: docker compose -f ../docker-compose.yml up --build
+services:
+  app:
+    container_name: program-counsellor-backend
+    build: .
+    restart: always
+    env_file:
+      - ./app/.env
+      - ./.env.docker
+    ports:
+      - "40080:8080"
+    mem_limit: 512m
+    networks:
+      - program-counsellor-backend-network
+
+
+networks:
+  program-counsellor-backend-network:

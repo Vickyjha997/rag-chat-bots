@@ -4,10 +4,9 @@ This folder contains the **React frontend** used to develop/test the chat widget
 
 ### Key design points
 
-- **Single shared sessionId**: text + voice use the same `sessionId` created by `POST /api/cohorts/:cohortKey/session`, so message ordering stays consistent.
-- **Shared backend routes**: voice tool-calling uses the existing backend route `POST /api/cohorts/:cohortKey/chat`.
-- **Env-only configuration**: URLs/ports/keys must come from `.env` (no hard-coded values in code, except safe defaults).
-- **Backend runs in `app/`**: chat + voice REST run on port 3000; voice WS runs on port 3001.
+- **Single shared sessionId**: text + voice use the same RAG `sessionId`; voice agent gets it via `ragContext` and calls RAG as a tool.
+- **Voice → RAG**: WebSocket to Gemini Voice Agent (VITE_VOICE_WS); agent calls RAG backend (VITE_API_BASE) via tool; no direct frontend→backend tool calls.
+- **Env-only configuration**: VITE_API_BASE, VITE_VOICE_HTTP, VITE_VOICE_WS from `.env.local` (local) or `.env.docker` (Docker); no hardcoded URLs.
 
 ## Setup
 
@@ -16,14 +15,14 @@ This folder contains the **React frontend** used to develop/test the chat widget
    npm install
    ```
 
-2. **Create `.env` file** (copy from `.env.example`):
+2. **Create `.env.local`** for local development (or copy from `app/.env.local`):
    ```env
-   # Frontend Configuration
-   VITE_API_BASE_URL=http://localhost:3000
-   VITE_VOICE_HTTP_BASE_URL=http://localhost:3000
-   VITE_VOICE_WS_BASE_URL=ws://localhost:3001
+   VITE_API_BASE=http://localhost:8080
+   VITE_VOICE_HTTP=http://localhost:3001
+   VITE_VOICE_WS=ws://localhost:3002
    VITE_LOG_LEVEL=info
    ```
+   For Docker builds use `app/.env.docker`; URLs use host ports (e.g. 40080, 40001, 40002).
 
 3. **Start development server**:
    ```bash
@@ -32,13 +31,10 @@ This folder contains the **React frontend** used to develop/test the chat widget
 
    The frontend will be available at `http://localhost:5173`
 
-4. Voice backend is started by the main backend (`app/`) automatically.
-
 ## Prerequisites
 
-- The main backend server must be running (see `../app/`):
-  - Chat + Voice REST: `http://localhost:3000`
-  - Voice WS: `ws://localhost:3001`
+- **Local**: RAG backend (e.g. port 8080), Gemini Voice Agent (HTTP 3001, WS 3002). Set VITE_API_BASE, VITE_VOICE_HTTP, VITE_VOICE_WS in `app/.env.local`.
+- **Docker**: Use root `docker compose up`; frontend uses host ports (40080, 40001, 40002) via `app/.env.docker` or build args.
 
 ## Available Scripts
 
@@ -60,9 +56,7 @@ This will:
 2. Build React app with Vite (outputs to `dist/`)
 3. All static files are included in the build
 
-**Note**: Frontend and backend run separately:
-- **Frontend**: Runs on port 5173 (dev) or serves from `dist/` (production)
-- **Backend**: Runs on port 3000 (HTTP) and 3001 (WebSocket)
+**Note**: Frontend, RAG backend, and Voice Agent run separately. Frontend uses env vars to reach them (local or host ports in Docker).
 
 ## Project Structure
 
@@ -85,14 +79,14 @@ frontend-app/
 
 ## Environment Variables
 
-### Frontend Variables (must be prefixed with `VITE_`)
+### Frontend (prefix `VITE_`). No hardcoded URLs; use `.env.local` (local) or `.env.docker` (Docker).
 
-- `VITE_API_BASE_URL` - Main backend API URL (default: http://localhost:3000)
-- `VITE_VOICE_HTTP_BASE_URL` - Voice backend HTTP URL (default: http://localhost:3000)
-- `VITE_VOICE_WS_BASE_URL` - Voice backend WebSocket URL (default: ws://localhost:3001)
+- `VITE_API_BASE` - RAG backend HTTP base (e.g. http://localhost:8080)
+- `VITE_VOICE_HTTP` - Gemini Voice Agent HTTP base (e.g. http://localhost:3001)
+- `VITE_VOICE_WS` - Gemini Voice Agent WebSocket URL (e.g. ws://localhost:3002)
 - `VITE_LOG_LEVEL` - Logging level (default: info)
 
-**Note**: Voice backend env vars live in `app/.env` now.
+**Local**: browser uses localhost + above ports. **Docker**: use host-mapped ports (e.g. 40080, 40001, 40002) in `app/.env.docker` or build args.
 
 ## Troubleshooting
 

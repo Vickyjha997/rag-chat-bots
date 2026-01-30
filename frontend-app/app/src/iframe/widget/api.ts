@@ -10,9 +10,9 @@ function getEnv(key: string, fallback: string): string {
   return (typeof v === 'string' && v.trim()) ? v.trim() : fallback
 }
 
-/** Base URL for the backend (e.g. http://localhost:3000). No trailing slash. */
+/** RAG backend HTTP base. Set VITE_API_BASE in .env.local (local) or .env.docker (Docker). No trailing slash. */
 export function getApiBase(): string {
-  return getEnv('VITE_API_BASE_URL', window.location.origin).replace(/\/+$/, '')
+  return getEnv('VITE_API_BASE', window.location.origin).replace(/\/+$/, '')
 }
 
 /**
